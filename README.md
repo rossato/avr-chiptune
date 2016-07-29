@@ -29,7 +29,7 @@ For MIDI input:
 
 *  6N138 optoisolator
 *  1N4148 diode
-*  220 and 470 ohm resistors
+*  220, 470, and 10kOhm resistors
 *  MIDI socket
 
 For key-matrix input:

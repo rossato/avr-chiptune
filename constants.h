@@ -1,0 +1,57 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
+#include <avr/io.h>
+
+#define NO_VALUE 255
+
+#define DRUM_MACHINE_1 252
+#define DRUM_MACHINE_2 253
+#define DRUM_HAT_NOTE 254
+#define TOTAL_NOTES 256
+
+#define NBANKS 3
+#define BANK_KEYS 0
+#define BANK_MIDI 1
+#define BANK_CPU  2
+
+#define MODE_BURST_BIT 0
+#define MODE_ARPEGGIO_BIT 1
+#define MODE_VIBRATO_BIT 2
+#define MODE_ECHO_BIT 3
+#define MODE_PEDAL_BIT 4
+
+#define MODE_NONE 0
+#define MODE_BURST    _BV(MODE_BURST_BIT)
+#define MODE_ARPEGGIO _BV(MODE_ARPEGGIO_BIT)
+#define MODE_VIBRATO  _BV(MODE_VIBRATO_BIT)
+#define MODE_ECHO     _BV(MODE_ECHO_BIT)
+#define MODE_PEDAL    _BV(MODE_PEDAL_BIT)
+
+#define NCHANNELS 8
+
+#define SHAPE_NOISE_BIT 0
+#define SHAPE_PCM_BIT 1
+#define SHAPE_SQUARE_BIT 2
+#define SHAPE_TRIANGLE_BIT 3
+#define SHAPE_DRUM_BIT 7
+
+#define SHAPE_NONE 0
+#define SHAPE_NOISE    _BV(SHAPE_NOISE_BIT)
+#define SHAPE_PCM      _BV(SHAPE_PCM_BIT)
+#define SHAPE_SQUARE   _BV(SHAPE_SQUARE_BIT)
+#define SHAPE_TRIANGLE _BV(SHAPE_TRIANGLE_BIT)
+#define SHAPE_DRUM     _BV(SHAPE_DRUM_BIT)
+
+#define DAC_BUF  6
+#define DAC_GA   5
+#define DAC_SHDN 4
+#define DAC_DEFAULT (_BV(DAC_GA) | _BV(DAC_SHDN))
+
+#define NINSTRUMENTS 4
+#define INSTRUMENT_DEFAULT 0
+#define INSTRUMENT_HAT 1
+#define INSTRUMENT_CYMBOL 2
+#define INSTRUMENT_SNARE 3
+
+#endif

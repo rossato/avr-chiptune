@@ -32,8 +32,8 @@ void scan_interface() {
             PORTC &= ~_BV(PC4);
             break;
         case RECORD_MODE_PLAYBACK:
-            for (i = BANK_CPU*88; i < DRUM_MACHINE_1; ++i) {
-                stop_note(i);
+            for (i = 0; i < TOTAL_NOTES; ++i) {
+                stop_note(BANK_CPU, i);
             }
             record_mode = RECORD_MODE_NONE;
             PORTC |= _BV(PC4);
@@ -52,27 +52,27 @@ void scan_interface() {
         case 0:
             banks[BANK_KEYS].shape = SHAPE_SQUARE;
             banks[BANK_KEYS].duty = 0x80;
-            banks[BANK_KEYS].instrument = &instruments[INSTRUMENT_DEFAULT];
+            banks[BANK_KEYS].instrument = INSTRUMENT_DEFAULT;
             break;
         case 1:
             banks[BANK_KEYS].shape = SHAPE_SQUARE;
             banks[BANK_KEYS].duty = 0x40;
-            banks[BANK_KEYS].instrument = &instruments[INSTRUMENT_DEFAULT];
+            banks[BANK_KEYS].instrument = INSTRUMENT_DEFAULT;
             break;
         case 2:
             banks[BANK_KEYS].shape = SHAPE_SQUARE;
             banks[BANK_KEYS].duty = 0x20;
-            banks[BANK_KEYS].instrument = &instruments[INSTRUMENT_DEFAULT];
+            banks[BANK_KEYS].instrument = INSTRUMENT_DEFAULT;
             break;
         case 3:
             banks[BANK_KEYS].shape = SHAPE_TRIANGLE;
             banks[BANK_KEYS].duty = 0x80;
-            banks[BANK_KEYS].instrument = &instruments[INSTRUMENT_DEFAULT];
+            banks[BANK_KEYS].instrument = INSTRUMENT_DEFAULT;
             break;
         case 4:
             banks[BANK_KEYS].shape = SHAPE_DRUM;
             banks[BANK_KEYS].duty = 0x80;
-            banks[BANK_KEYS].instrument = &instruments[INSTRUMENT_DEFAULT];
+            banks[BANK_KEYS].instrument = INSTRUMENT_DEFAULT;
             break;
         }
         notify_bank_mode_changed(BANK_KEYS);

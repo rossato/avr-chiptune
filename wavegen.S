@@ -103,7 +103,7 @@ addsound:
         add r18, r22
 
 nextloop:
-        adiw r30, 11                    ; sizeof(struct channel_t)
+        adiw r30, 10                    ; sizeof(struct channel_t)
         dec r19
         brne channel_loop
 

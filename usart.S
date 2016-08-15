@@ -10,7 +10,7 @@
 USART_RX_vect:
         push r0
         in r0, _SFR_IO_ADDR(SREG)
-        push r0                        
+        push r0
         push r30
         push r31
 
@@ -18,8 +18,10 @@ USART_RX_vect:
         ldi r31, hi8(midi_ring_buffer)
         lds r0, _SFR_MEM_ADDR(UDR0)
         st Z+, r0
+        andi r30, 63
+        ori r30, lo8(midi_ring_buffer)
         sts midi_last_message, r30
-        
+
         pop r31
         pop r30
         pop r0

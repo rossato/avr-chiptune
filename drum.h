@@ -21,6 +21,8 @@
 #define DRUM_KICK_SQUARE 9
 #define NDRUMS 10
 
+#define DRUM_MACHINE_SIZE 2
+
 struct drum_t {
     uint16_t freq;
     int16_t slide;
@@ -31,6 +33,7 @@ struct drum_t {
 extern const struct drum_t drums[];
 extern const struct drum_t *drum_machine[];
 
-uint8_t allocate_drum_note(uint8_t drum);
+uint8_t start_drum(uint8_t drum);
+void update_drum(uint8_t channel);
 
 #endif

@@ -46,15 +46,15 @@ void scan_keys() {
         if (rows != 0xFF) {
             for (note = col_start; note < col_end; note += 8) {
                 if (!(rows & 0x80))
-                    start_note(note);
+                    start_note(BANK_KEYS, note);
                 else
-                    stop_note(note);
+                    stop_note(BANK_KEYS, note);
                 rows = rows << 1;
             }
         }
         else {
             for (note = col_start; note < col_end; note += 8) {
-                stop_note(note);
+                stop_note(BANK_KEYS, note);
             }
         }
     }

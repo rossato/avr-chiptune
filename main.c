@@ -49,29 +49,6 @@ const uint16_t freqs[TOTAL_NOTES] = {
     0x671, 0x6D3, 0x73A, 0x7A8, 0x81D, 0x899, 0x91B, 0x9A6,
     0xA39, 0xAD4, 0xB79, 0xC28, 0xCE1, 0xDA5, 0xE75, 0xF51,
     0x103A, 0x1131, 0x1237, 0x134C, 0x1472, 0x15A9, 0x16F3, 0x1850,
-    // Repeat to avoid expensive division operations during update_audio
-    0x29, 0x2B, 0x2E, 0x31, 0x34, 0x37, 0x3A, 0x3D,
-    0x41, 0x45, 0x49, 0x4D, 0x52, 0x57, 0x5C, 0x61,
-    0x67, 0x6D, 0x74, 0x7B, 0x82, 0x8A, 0x92, 0x9A,
-    0xA4, 0xAD, 0xB8, 0xC2, 0xCE, 0xDA, 0xE7, 0xF5,
-    0x104, 0x113, 0x123, 0x135, 0x147, 0x15B, 0x16F, 0x185,
-    0x19C, 0x1B5, 0x1CF, 0x1EA, 0x207, 0x226, 0x247, 0x269,
-    0x28E, 0x2B5, 0x2DE, 0x30A, 0x338, 0x369, 0x39D, 0x3D4,
-    0x40E, 0x44C, 0x48E, 0x4D3, 0x51C, 0x56A, 0x5BD, 0x614,
-    0x671, 0x6D3, 0x73A, 0x7A8, 0x81D, 0x899, 0x91B, 0x9A6,
-    0xA39, 0xAD4, 0xB79, 0xC28, 0xCE1, 0xDA5, 0xE75, 0xF51,
-    0x103A, 0x1131, 0x1237, 0x134C, 0x1472, 0x15A9, 0x16F3, 0x1850,
-    0x29, 0x2B, 0x2E, 0x31, 0x34, 0x37, 0x3A, 0x3D,
-    0x41, 0x45, 0x49, 0x4D, 0x52, 0x57, 0x5C, 0x61,
-    0x67, 0x6D, 0x74, 0x7B, 0x82, 0x8A, 0x92, 0x9A,
-    0xA4, 0xAD, 0xB8, 0xC2, 0xCE, 0xDA, 0xE7, 0xF5,
-    0x104, 0x113, 0x123, 0x135, 0x147, 0x15B, 0x16F, 0x185,
-    0x19C, 0x1B5, 0x1CF, 0x1EA, 0x207, 0x226, 0x247, 0x269,
-    0x28E, 0x2B5, 0x2DE, 0x30A, 0x338, 0x369, 0x39D, 0x3D4,
-    0x40E, 0x44C, 0x48E, 0x4D3, 0x51C, 0x56A, 0x5BD, 0x614,
-    0x671, 0x6D3, 0x73A, 0x7A8, 0x81D, 0x899, 0x91B, 0x9A6,
-    0xA39, 0xAD4, 0xB79, 0xC28, 0xCE1, 0xDA5, 0xE75, 0xF51,
-    // last 8 trimmed to make an even 256 frequencies for 256 notes
 };
 
 //Test tone.
@@ -122,36 +99,39 @@ struct bank_t banks[NBANKS] = {
         .shape = SHAPE_SQUARE,
         .duty = 0x80,
         .mode = MODE_VIBRATO,
-        .instrument = &instruments[INSTRUMENT_DEFAULT],
-        .first_note = 0,
-        .end_note = 88
+        .instrument = INSTRUMENT_DEFAULT,
+        .notes[0 ... (TOTAL_NOTES-1)] = {
+            .channel = NO_VALUE
+        }
     },
     [BANK_MIDI] = {
         .shape = SHAPE_TRIANGLE,
         .duty = 0x80,
         .mode = MODE_VIBRATO,
-        .instrument = &instruments[INSTRUMENT_DEFAULT],
-        .first_note = 88,
-        .end_note = 2*88
+        .instrument = INSTRUMENT_DEFAULT,
+        .notes[0 ... (TOTAL_NOTES-1)] = {
+            .channel = NO_VALUE
+        }
     },
     [BANK_CPU] = {
         .shape = SHAPE_SQUARE,
         .duty = 0x80,
         .mode = MODE_NONE,
-        .instrument = &instruments[INSTRUMENT_DEFAULT],
-        .first_note = 2*88,
-        .end_note = DRUM_HAT_NOTE
+        .instrument = INSTRUMENT_DEFAULT,
+        .notes[0 ... (TOTAL_NOTES-1)] = {
+            .channel = NO_VALUE
+        }
     }
 };
 
 struct channel_t channels[NCHANNELS] = {
     [0 ... (NCHANNELS-1)] = {
-        .duty = 0x80,
-        .note = NO_VALUE,
         .shape = SHAPE_NONE,
-        .volume = 0x0F,
+        .duty = 0x80,
+        .volume = 0x00,
+        .bank = NO_VALUE,
+        .note = NO_VALUE,
         .frame = 0,
-        .bank = NULL
     }
 };
 
@@ -169,26 +149,14 @@ void notify_bank_mode_changed(uint8_t bank) {
         set_cpu_bank_mode(bank);
 }
 
-#define BANK(x) ((x) / 88)
-#define FREQ(x) ((x) % 88)
-
-struct note_t {
-    struct channel_t *channel;
-};
-struct note_t notes[TOTAL_NOTES] = {
-    [0 ... (TOTAL_NOTES-1)] = {
-        .channel = NULL
-    }
-};
-
-inline void channel_off(struct channel_t *channel) {
-    channel->shape = SHAPE_NONE;
-    channel->bank = NULL;
-    if (channel->note != NO_VALUE) {
-        notes[channel->note].channel = NULL;
-        channel->note = NO_VALUE;
-    }
-}
+/* inline void channel_off(struct channel_t *channel, struct bank_t *bank) { */
+/*     channel->shape = SHAPE_NONE; */
+/*     channel->bank = NO_VALUE; */
+/*     if (channel->note != NO_VALUE) { */
+/*         bank->notes[channel->note].channel = NO_VALUE; */
+/*         channel->note = NO_VALUE; */
+/*     } */
+/* } */
 
 /* Time periods are in maintenance ticks, or 100ths of a second */
 #define ARP_DURATION 4
@@ -205,211 +173,217 @@ inline void channel_off(struct channel_t *channel) {
 //  so 5 is less than a semitone, 4 is more.
 const int8_t vibrato_amount[VIBRATO_DURATION] = { 6, 6, 6, 6, 6, 6, 0, 0, 0, 0, 0, 0,
                                                  -6, -6, -6, -6, -6, -6, 0, 0, 0, 0, 0, 0 };
+
 /* Called at roughly 100Hz */
 void update_audio() {
-    uint8_t i, j;
-    struct channel_t *channel = channels;
-    for (i = 0; i < NCHANNELS; ++i, ++channel) {
-        struct bank_t *bank = channel->bank;
-        if (bank == NULL) continue;
+    uint8_t channel;
+    struct channel_t *p_channel = channels;
+    for (channel = 0; channel < NCHANNELS; ++channel, ++p_channel) {
 
-        uint8_t frame = channel->frame;
+        uint8_t bank = p_channel->bank;
+        if (bank == NO_VALUE) continue;
+        else if (bank == BANK_DRUMS) {
+            update_drum(channel);
+            continue;
+        }
+
+        struct bank_t *p_bank = &banks[bank];
+
+        uint8_t frame = p_channel->frame;
+        uint8_t note = p_channel->note;
+        struct note_t *p_note = &p_bank->notes[note];
 
         // Start and stop notes
-        if (channel->note == NO_VALUE ||
-            notes[channel->note].channel != channel) {
-
-            channel->bank = NULL;
-            for (j = bank->first_note; j < bank->end_note; ++j) {
-                if (notes[j].channel == channel) {
-                    channel->note = j;
-                    channel->freq = freqs[j];
-                    channel->bank = bank;
-                    channel->frame = 0;
-                    channel->volume = 0;
-                    channel->duty = bank->duty;
-                    channel->shape = bank->shape;
+        if (note == NO_VALUE || p_note->channel != channel) {
+            p_note = p_bank->notes;
+            for (note = 0; note < TOTAL_NOTES; ++note, ++p_note) {
+                if (p_note->channel == channel) {
+                    p_channel->note = note;
+                    p_channel->freq = freqs[note];
+                    p_channel->bank = bank;
+                    p_channel->frame = frame = 0;
+                    p_channel->volume = 0;
+                    p_channel->duty = p_bank->duty;
+                    p_channel->shape = p_bank->shape;
                     break;
                 }
             }
-            if (channel->bank == NULL) {
-                channel_off(channel);
+            if (note == TOTAL_NOTES) {
+                p_channel->bank = NO_VALUE;
+                p_channel->shape = SHAPE_NONE;
+                p_channel->note = NO_VALUE;
                 continue;
             }
         }
         // Arpeggiate
-        else if (frame == ARP_DURATION && bank < &banks[BANK_CPU]) {
-            for (j = 1; j < 88; ++j) {
-                uint8_t note = channel->note - j;
-                if ((note >= bank->end_note) ||
-                    (note <  bank->first_note)) note += 88;
-                if (notes[note].channel == channel) {
-                    channel->note = note;
-                    channel->freq = freqs[note];
-                    channel->frame = 0;
+        else if (frame == ARP_DURATION) {
+            uint8_t old_note = note;
+            for (--note, --p_note; note != old_note; --note, --p_note) {
+                if (note >= TOTAL_NOTES) {
+                    note += TOTAL_NOTES;
+                    p_note += TOTAL_NOTES;
+                }
+                if (p_note->channel == channel) {
+                    p_channel->note = note;
+                    p_channel->freq = freqs[note];
+                    p_channel->frame = 0;
                     break;
                 }
             }
         }
 
-        // Drums
-        if (channel->note >= DRUM_MACHINE_1) {
-            const struct drum_t *drum = drum_machine[channel->note - DRUM_MACHINE_1];
-            if (frame >= drum->duration) {
-                channel_off(channel);
-                continue;
-            }
-
-            if (frame == 0) {
-                channel->freq = drum->freq;
-                channel->shape = drum->shape;
-            }
-            else {
-                channel->freq += drum->slide;
-            }
-
-            channel->volume = drum->instrument->volume[frame];
-
-            ++(channel->frame);
-            continue;
-        }
-
         // Attack-decay-sustain
-        const uint8_t *instrument_volume = bank->instrument->volume;
+        const uint8_t *instrument_volume = instruments[p_bank->instrument].volume;
         if (frame < INSTRUMENT_DURATION) {
-            channel->volume = instrument_volume[frame];
+            p_channel->volume = instrument_volume[frame];
         }
 
         // Echo
         if (frame >= ECHO_START) {
             if (frame < ECHO_START + INSTRUMENT_DURATION) {
-                channel->volume = instrument_volume[frame-ECHO_START] >> 1;
+                p_channel->volume = instrument_volume[frame-ECHO_START] >> 1;
             }
             else if (frame >= ECHO_START + ECHO_DURATION) {
-                channel_off(channel);
+                p_channel->shape = SHAPE_NONE;
+                p_channel->bank = NO_VALUE;
+                p_channel->note = NO_VALUE;
+                p_note->channel = NO_VALUE;
                 continue;
             }
         }
         // Vibrato
         else {
             if (frame >= VIBRATO_START + VIBRATO_DURATION)
-                channel->frame = (frame -= VIBRATO_DURATION);
+                p_channel->frame = (frame -= VIBRATO_DURATION);
 
-            if ((bank->mode & MODE_VIBRATO) && frame >= VIBRATO_START) {
+            if ((p_bank->mode & MODE_VIBRATO) && frame >= VIBRATO_START) {
                 int8_t amount = vibrato_amount[frame - VIBRATO_START];
-                uint16_t freq = freqs[channel->note];
+                uint16_t freq = freqs[note];
                 if (amount > 0)
-                    channel->freq = freq + (freq >> amount);
+                    p_channel->freq = freq + (freq >> amount);
                 else if (amount < 0)
-                    channel->freq = freq - (freq >> -amount);
+                    p_channel->freq = freq - (freq >> -amount);
                 else
-                    channel->freq = freq;
+                    p_channel->freq = freq;
             }
         }
 
-        ++(channel->frame);
+        ++(p_channel->frame);
     }
 }
 
-struct channel_t *next_channel = &channels[0];
-struct channel_t *allocate_channel(uint8_t note) {
+uint8_t next_channel = 0;
+uint8_t allocate_channel(uint8_t bank, uint8_t note) {
 // Channel algorithm, by priority:
 // (1) If the bank is arpeggiating or we're at max triangles, find the bank channel
 // (2) Find an empty channel
 // (3) Find a same-bank channel and arpeggiate on it
 // (4) Find any channel not occupied by burst and take it over
 
-    uint8_t i, n_tri = 0;
-    struct channel_t *bank_channel = NULL, *empty_channel = NULL,
-        *last_chance = next_channel, *channel = next_channel;
-    struct bank_t *bank = &banks[BANK(note)];
+    uint8_t n_triangles = 0;
+    uint8_t bank_channel = NO_VALUE, empty_channel = NO_VALUE,
+        last_chance = next_channel, channel;
 
-    for (i = 0; i < NCHANNELS; ++i) {
-        ++channel; if (channel > &channels[NCHANNELS-1]) channel = &channels[0];
-        if (channel->bank == NULL) {
-            empty_channel = channel;
-        }
-        else if (channel->bank->shape == SHAPE_TRIANGLE) {
-            ++n_tri;
-        }
-        if (channel->bank == bank) {
-            bank_channel = channel;
-        }
-        if (channel->bank != &banks[BANK_CPU]) {
-            last_chance = channel;
+    {
+        struct channel_t *p_channel = channels;
+        for (channel = 0; channel < NCHANNELS; ++p_channel, ++channel) {
+            uint8_t channel_bank = p_channel->bank;
+            if (channel_bank == NO_VALUE) {
+                empty_channel = channel;
+            }
+            else if (p_channel->shape == SHAPE_TRIANGLE) {
+                ++n_triangles;
+            }
+            if (channel_bank == bank) {
+                bank_channel = channel;
+            }
+            if (channel_bank < BANK_CPU) {
+                last_chance = channel;
+            }
         }
     }
-    ++next_channel; if (next_channel > &channels[NCHANNELS-1]) next_channel = &channels[0];
+    ++next_channel; if (next_channel > NCHANNELS) next_channel = 0;
 
-    if (((bank->mode & MODE_ARPEGGIO) ||
-         (bank->shape == SHAPE_TRIANGLE && n_tri >= 4))
-        && bank_channel != NULL)
+    struct bank_t *p_bank = &banks[bank];
+
+    if ((bank_channel != NO_VALUE) &&
+        ((p_bank->mode & MODE_ARPEGGIO) ||
+         (p_bank->shape == SHAPE_TRIANGLE && n_triangles >= 4)))  {
         return bank_channel;
-    else if (empty_channel != NULL) {
-        empty_channel->bank = bank;
+    }
+    else if (empty_channel != NO_VALUE) {
+        channels[empty_channel].bank = bank;
         return empty_channel;
     }
-    else if (bank_channel != NULL) return bank_channel;
+    else if (bank_channel != NO_VALUE) {
+        return bank_channel;
+    }
 
-    struct bank_t *last_bank = last_chance->bank;
-    last_chance->bank = bank;
+    uint8_t last_bank = channels[last_chance].bank;
+    channels[last_chance].bank = bank;
+    struct note_t *p_note = banks[last_bank].notes;
 
-    for (i = last_bank->first_note; i < last_bank->end_note; ++i) {
-        if (notes[i].channel == last_chance) {
-            notes[i].channel = NULL;
-            start_note(i); // Go arpeggiate with your own bank
+    for (note = 0; note < TOTAL_NOTES; ++note, ++p_note) {
+        if (p_note->channel == last_chance) {
+            p_note->channel = NO_VALUE;
+            start_note(last_bank, note); // Go arpeggiate with your own bank
         }
     }
     return last_chance;
 }
 
-void start_note(uint8_t note) {
-    if (notes[note].channel != NULL) {
-        if (notes[note].channel->frame >= ECHO_START)
-            notes[note].channel->frame = 0;
+void start_note(uint8_t bank, uint8_t note) {
+    struct bank_t *p_bank = &banks[bank];
+    struct note_t *p_note = &p_bank->notes[note];            
+    struct channel_t *p_channel = &channels[p_note->channel];
+
+    if (p_note->channel != NO_VALUE) {
+        if (p_channel->frame >= ECHO_START)
+            p_channel->frame = 0;
         return;
     }
 
-    struct bank_t *bank = &banks[BANK(note)];
-
-    if (record_mode == RECORD_MODE_RECORDING && note < BANK_CPU*88) {
-        if (bank->shape == SHAPE_DRUM)
+    if (record_mode == RECORD_MODE_RECORDING && bank < BANK_CPU) {
+        if (p_bank->shape == SHAPE_DRUM)
             record_drum(note % NDRUMS);
         else
-            record_note_on(FREQ(note));
+            record_note_on(note);
     }
 
-    if (note == DRUM_HAT_NOTE) {
-        note = allocate_drum_note(DRUM_HAT);
-    }
-    else if (bank->shape == SHAPE_DRUM) {
-        note = allocate_drum_note(note % NDRUMS);
+    if (p_bank->shape == SHAPE_DRUM) {
+        p_note->channel = start_drum(note % NDRUMS);
+        return;
     }
 
-    struct channel_t *channel = allocate_channel(note);
-    notes[note].channel = channel;
-    channel->frame = 0;
+    uint8_t channel = allocate_channel(bank, note);
+    p_note->channel = channel;
 
-    if (bank->mode & MODE_BURST) {
-        start_note(DRUM_HAT_NOTE);
+    channels[channel].frame = 0;
+
+    if (p_bank->mode & MODE_BURST) {
+        start_drum(DRUM_HAT);
     }
 }
 
-void stop_note(uint8_t note) {
-    if (notes[note].channel == NULL) return;
+void stop_note(uint8_t bank, uint8_t note) {
+    struct bank_t *p_bank = &banks[bank];
+    struct note_t *p_note = &p_bank->notes[note];
+    if (p_note->channel == NO_VALUE) return;
 
-    if (record_mode == RECORD_MODE_RECORDING && note < BANK_CPU*88) {
-        record_note_off(FREQ(note));
+    if (record_mode == RECORD_MODE_RECORDING && bank < BANK_CPU) {
+        record_note_off(note);
     }
 
-    if (banks[BANK(note)].mode & MODE_ECHO) {
-        if (notes[note].channel->frame < ECHO_START) {
-            notes[note].channel->frame = ECHO_START;
-            notes[note].channel->freq = freqs[note];
+    struct channel_t *p_channel = &channels[p_note->channel];
+    
+    if (p_bank->mode & MODE_ECHO) {
+        if (p_channel->frame < ECHO_START) {
+            p_channel->frame = ECHO_START;
+            p_channel->freq = freqs[note];
         }
     }
     else {
-        notes[note].channel = NULL;
+        p_note->channel = NO_VALUE;
     }
 }
 

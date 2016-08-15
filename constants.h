@@ -5,15 +5,13 @@
 
 #define NO_VALUE 255
 
-#define DRUM_MACHINE_1 252
-#define DRUM_MACHINE_2 253
-#define DRUM_HAT_NOTE 254
-#define TOTAL_NOTES 256
+#define TOTAL_NOTES 88
 
 #define NBANKS 3
 #define BANK_KEYS 0
 #define BANK_MIDI 1
 #define BANK_CPU  2
+#define BANK_DRUMS 3 // psuedo-bank
 
 #define MODE_BURST_BIT 0
 #define MODE_ARPEGGIO_BIT 1

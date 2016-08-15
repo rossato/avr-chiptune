@@ -13,7 +13,7 @@
    and note 40 (39 by 0-index) on
    an 88 key keyboard (and our array) */
 #define MIDI_NOTE_OFFSET 21
-#define MIDI_NOTE(x) ((x) + 88*BANK_MIDI - MIDI_NOTE_OFFSET)
+#define MIDI_NOTE(x) ((x) - MIDI_NOTE_OFFSET)
 
 #define MIDI_IDLE 0
 #define MIDI_NOTE_ON 1
@@ -21,14 +21,14 @@
 #define MIDI_PROGRAM_CHANGE 3
 #define MIDI_CONTROL_CHANGE 4
 
+volatile uint8_t midi_ring_buffer[64] __attribute__((aligned(64)));
+volatile uint8_t midi_last_message = 0;
+uint8_t midi_next_message = 0;
+
 uint8_t midi_status = MIDI_NOTE_ON;
 uint8_t midi_data_index = 0;
 uint8_t midi_last_data;
 uint8_t midi_sustain = 0;
-
-volatile uint8_t midi_ring_buffer[256] __attribute__((aligned(256)));
-volatile uint8_t midi_last_message = 0;
-uint8_t midi_next_message = 0;
 
 void midi_program_change(uint8_t program) {
     switch(program) {
@@ -36,43 +36,43 @@ void midi_program_change(uint8_t program) {
         banks[BANK_MIDI].shape = SHAPE_TRIANGLE;
         banks[BANK_MIDI].duty = 0x80;
         banks[BANK_MIDI].mode = MODE_VIBRATO;
-        banks[BANK_MIDI].instrument = &instruments[INSTRUMENT_DEFAULT];
+        banks[BANK_MIDI].instrument = INSTRUMENT_DEFAULT;
         break;
     case 1:
         banks[BANK_MIDI].shape = SHAPE_SQUARE;
         banks[BANK_MIDI].duty = 0x80;
         banks[BANK_MIDI].mode = MODE_VIBRATO;
-        banks[BANK_MIDI].instrument = &instruments[INSTRUMENT_DEFAULT];
+        banks[BANK_MIDI].instrument = INSTRUMENT_DEFAULT;
         break;
     case 4:
         banks[BANK_MIDI].shape = SHAPE_SQUARE;
         banks[BANK_MIDI].duty = 0x40;
         banks[BANK_MIDI].mode = MODE_VIBRATO;
-        banks[BANK_MIDI].instrument = &instruments[INSTRUMENT_DEFAULT];
+        banks[BANK_MIDI].instrument = INSTRUMENT_DEFAULT;
         break;
     case 5:
         banks[BANK_MIDI].shape = SHAPE_SQUARE;
         banks[BANK_MIDI].duty = 0x40;
         banks[BANK_MIDI].mode = MODE_VIBRATO | MODE_ARPEGGIO;
-        banks[BANK_MIDI].instrument = &instruments[INSTRUMENT_DEFAULT];
+        banks[BANK_MIDI].instrument = INSTRUMENT_DEFAULT;
         break;
     case 6:
         banks[BANK_MIDI].shape = SHAPE_TRIANGLE;
         banks[BANK_MIDI].duty = 0x80;
         banks[BANK_MIDI].mode = MODE_BURST | MODE_VIBRATO;
-        banks[BANK_MIDI].instrument = &instruments[INSTRUMENT_DEFAULT];
+        banks[BANK_MIDI].instrument = INSTRUMENT_DEFAULT;
         break;
     case 7:
         banks[BANK_MIDI].shape = SHAPE_TRIANGLE;
         banks[BANK_MIDI].duty = 0x80;
         banks[BANK_MIDI].mode = MODE_PEDAL | MODE_VIBRATO;
-        banks[BANK_MIDI].instrument = &instruments[INSTRUMENT_DEFAULT];
+        banks[BANK_MIDI].instrument = INSTRUMENT_DEFAULT;
         break;
     case 11:
         banks[BANK_MIDI].shape = SHAPE_DRUM;
         banks[BANK_MIDI].duty = 0x80;
         banks[BANK_MIDI].mode = 0;
-        banks[BANK_MIDI].instrument = &instruments[INSTRUMENT_DEFAULT];
+        banks[BANK_MIDI].instrument = INSTRUMENT_DEFAULT;
         break;
     }
     notify_bank_mode_changed(BANK_MIDI);
@@ -117,16 +117,16 @@ void scan_midi() {
                 }
                 else {
                     if (data) {
-                        start_note(MIDI_NOTE(midi_last_data));
+                        start_note(BANK_MIDI, MIDI_NOTE(midi_last_data));
                         if (banks[BANK_MIDI].mode & MODE_PEDAL &&
                             midi_last_data >= (MIDI_NOTE_OFFSET+12))
-                            start_note(MIDI_NOTE(midi_last_data - 12));
+                            start_note(BANK_MIDI, MIDI_NOTE(midi_last_data - 12));
                     }
                     else {
-                        stop_note(MIDI_NOTE(midi_last_data));
+                        stop_note(BANK_MIDI, MIDI_NOTE(midi_last_data));
                         if (banks[BANK_MIDI].mode & MODE_PEDAL &&
                             midi_last_data >= (MIDI_NOTE_OFFSET+12))
-                            stop_note(MIDI_NOTE(midi_last_data - 12));
+                            stop_note(BANK_MIDI, MIDI_NOTE(midi_last_data - 12));
                     }
                 }
                 midi_data_index = 0;
@@ -134,10 +134,10 @@ void scan_midi() {
             break;
         case MIDI_NOTE_OFF:
             if (midi_data_index == 2) {
-                stop_note(MIDI_NOTE(midi_last_data));
+                stop_note(BANK_MIDI, MIDI_NOTE(midi_last_data));
                 if (banks[BANK_MIDI].mode & MODE_PEDAL &&
                     midi_last_data >= (MIDI_NOTE_OFFSET+12))
-                    stop_note(MIDI_NOTE(midi_last_data - 12));
+                    stop_note(BANK_MIDI, MIDI_NOTE(midi_last_data - 12));
                 midi_data_index = 0;
             }
             break;

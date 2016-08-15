@@ -9,8 +9,6 @@
 
 #include "constants.h"
 
-#define NULL ( (void *) 0)
-
 #define INSTRUMENT_DURATION 15
 
 struct instrument_t {
@@ -18,13 +16,16 @@ struct instrument_t {
 };
 extern const struct instrument_t instruments[];
 
+struct note_t {
+    uint8_t channel;
+};
+
 struct bank_t {
     uint8_t shape;
     uint8_t duty;
     uint8_t mode;
-    const struct instrument_t *instrument;
-    uint8_t first_note;
-    uint8_t end_note;
+    uint8_t instrument;
+    struct note_t notes[TOTAL_NOTES];
 };
 extern struct bank_t banks[];
 
@@ -34,16 +35,18 @@ struct channel_t {
     volatile uint8_t shape;
     volatile uint8_t duty;
     volatile int8_t volume;
-    struct bank_t *bank;
-    uint8_t note;
     uint8_t frame;
+    uint8_t bank;
+    uint8_t note;
 };
 extern struct channel_t channels[];
+
+uint8_t allocate_channel(uint8_t bank, uint8_t note);
 
 void set_cpu_bank_mode(uint8_t bank);
 void notify_bank_mode_changed(uint8_t bank);
 
-void start_note(uint8_t note);
-void stop_note(uint8_t note);
+void start_note(uint8_t bank, uint8_t note);
+void stop_note(uint8_t bank, uint8_t note);
 
 #endif

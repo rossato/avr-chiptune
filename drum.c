@@ -8,7 +8,9 @@
 #include "drum.h"
 
 uint8_t drum_machine_page = 0;
-const struct drum_t *drum_machine[2] = {&drums[0], &drums[0]};
+const struct drum_t *drum_machine[DRUM_MACHINE_SIZE] = {
+    [0 ... DRUM_MACHINE_SIZE-1] = &drums[0]
+};
 
 const struct drum_t drums[NDRUMS] = {
     [DRUM_HAT] = {
@@ -84,7 +86,41 @@ const struct drum_t drums[NDRUMS] = {
 };
 
 uint8_t allocate_drum_note(uint8_t drum) {
-    drum_machine_page = (drum_machine_page + 1) & 2;
+    drum_machine_page = (drum_machine_page + 1) & 1;
     drum_machine[drum_machine_page] = &drums[drum];
-    return DRUM_MACHINE_1 + drum_machine_page;
+    return drum_machine_page;
+}
+
+uint8_t start_drum(uint8_t drum) {
+    uint8_t note = allocate_drum_note(drum);
+    uint8_t channel = allocate_channel(BANK_DRUMS, note);
+
+    channels[channel].note = note;
+    channels[channel].frame = 0;
+    
+    return channel;
+}
+
+void update_drum(uint8_t channel) {
+    struct channel_t *p_channel = &channels[channel];
+    uint8_t frame = p_channel->frame++;
+    uint8_t note = p_channel->note;
+
+    const struct drum_t *p_drum = drum_machine[note];
+    if (frame >= p_drum->duration) {
+        p_channel->shape = SHAPE_NONE;
+        p_channel->bank = NO_VALUE;
+        p_channel->note = NO_VALUE;
+        return;
+    }
+
+    if (frame == 0) {
+        p_channel->freq = p_drum->freq;
+        p_channel->shape = p_drum->shape;
+    }
+    else {
+        p_channel->freq += p_drum->slide;
+    }
+
+    p_channel->volume = p_drum->instrument->volume[frame];
 }

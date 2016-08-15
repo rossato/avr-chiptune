@@ -11,10 +11,10 @@
 #define RECORD_BEATS 16
 #define RECORD_EVENTS 8
 
-#define RECORD_OFF_BASE 64
-#define RECORD_DRUM_BASE 128
+#define RECORD_OFF_BASE 88
+#define RECORD_DRUM_BASE 176
 
-#define RECORDED_KEY(key) ((key) + record_base_pitch[record_pitch_counter] - record_base_pitch[0] + BANK_CPU*88)
+#define RECORDED_KEY(key) ((key) + record_base_pitch[record_pitch_counter] - record_base_pitch[0])
 
 uint8_t record_mode = RECORD_MODE_NONE;
 uint8_t ticks_per_beat = 10;
@@ -101,7 +101,7 @@ void update_recording() {
     if (record_mode == RECORD_MODE_RECORDING) {
         if (!(beat&1)) {
             if (tick == half_beat) {
-                start_note(DRUM_HAT_NOTE);
+                start_drum(DRUM_HAT);
             }
             else if (beat == 0) {
                 if (tick == half_beat - 3)
@@ -121,13 +121,13 @@ void update_recording() {
         if (tick == half_beat) {
             for (i = 0; i < RECORD_EVENTS && beats[i] != NO_VALUE; ++i) {
                 if (beats[i] < RECORD_OFF_BASE) {
-                    start_note(RECORDED_KEY(beats[i]));
+                    start_note(BANK_CPU, RECORDED_KEY(beats[i]));
                 }
                 else if (beats[i] < RECORD_DRUM_BASE) {
-                    stop_note(RECORDED_KEY(beats[i]-RECORD_OFF_BASE));
+                    stop_note(BANK_CPU, RECORDED_KEY(beats[i]-RECORD_OFF_BASE));
                 }
                 else if (beats[i] >= RECORD_DRUM_BASE) {
-                    start_note(allocate_drum_note(beats[i]-RECORD_DRUM_BASE));
+                    start_drum(beats[i]-RECORD_DRUM_BASE);
                 }
             }
         }
